@@ -104,3 +104,31 @@ Compile it:
 ```sh
 clang -O2 -target bpf -c tail_call.c -o tail_call.o -I..
 ```
+
+# API 使用
+这部分内容主要集中在 Linux Observability with BPF 书中的第三章。以下内容并不是按照书籍中的顺序来排列的。
+## kernel-space
+### bpf_tail_call
+```c
+#include <libbpf_kernel.h>
+
+void bpf_tail_call(void *ctx, void *map, int index);
+```
+1. 功能：bpf_tail_call 通过 index 在 map 中找到一个 bpf 程序，然后跳转过去执行。如果 index 在 map 中有 bpf 程序，那就跳转过去执行，不会再返回；如果没有找到，那就继续往下执行。
+2. ctx: kernel 当前执行的上下文，也包含当前进程的信息。
+3. map 是 BPF_MAP_TYPE_PROG_ARRAY 类型的 bpf map，这种类型的 key 和 value 的大小必须是 4 字节，value 存储着一个 bpf 程序的 fd。
+4. index 对应着 bpf 程序的 key 值。 
+5. 返回值：无。
+
+### bpf_printk
+```c
+#include <libbpf_kernel.h>
+
+#define bpf_printk(fmt, ...)                            \
+({                                                      \
+        char ____fmt[] = fmt;                           \
+        bpf_trace_printk(____fmt, sizeof(____fmt),      \
+                         ##__VA_ARGS__);                \
+})
+```
+功能：打印 debug 信息，用法类似 printf
